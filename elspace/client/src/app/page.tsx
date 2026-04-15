@@ -1,12 +1,23 @@
-export default function Home() {
+import { HeroSection } from '@/components/landing/HeroSection'
+import { FeaturesSection } from '@/components/landing/FeaturesSection'
+import { PricingSection } from '@/components/landing/PricingSection'
+import { TestimonialsSection } from '@/components/landing/TestimonialsSection'
+import { CTASection } from '@/components/landing/CTASection'
+import { FooterSection } from '@/components/landing/FooterSection'
+import { Header } from '@/components/landing/Header'
+
+export default function LandingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold">Welcome to Elspace</h1>
-        <p className="mt-4 text-lg text-gray-600">
-          Connect with talented freelancers or find amazing projects
-        </p>
-      </div>
-    </main>
-  );
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <Header />
+      <main>
+        <HeroSection />
+        <FeaturesSection />
+        <PricingSection />
+        <TestimonialsSection />
+        <CTASection />
+      </main>
+      <FooterSection />
+    </div>
+  )
 }
