@@ -29,7 +29,7 @@ export default function WalletPage() {
   const [depositDialog, setDepositDialog] = useState(false)
   const [withdrawDialog, setWithdrawDialog] = useState(false)
   const [amount, setAmount] = useState('')
-  const [selectedMethod, setSelectedMethod] = useState<'stripe' | 'paypal' | 'crypto'>('stripe')
+  const [selectedMethod, setSelectedMethod] = useState<'korapay' | 'paypal' | 'crypto'>('korapay')
 
   const { toast } = useToast()
 
@@ -50,6 +50,13 @@ export default function WalletPage() {
         description: 'Please enter an amount',
         variant: 'destructive',
       })
+      return
+    }
+
+    if (selectedMethod === 'korapay') {
+      window.open('https://checkout.korapay.com/pay/VZBklOmLoiuRiu3', '_blank')
+      setDepositDialog(false)
+      setAmount('')
       return
     }
 
@@ -285,7 +292,7 @@ export default function WalletPage() {
               <Label className="mb-3 block text-sm font-medium">Payment Method</Label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { id: 'stripe', label: 'Card' },
+                  { id: 'korapay', label: 'Korapay' },
                   { id: 'paypal', label: 'PayPal' },
                   { id: 'crypto', label: 'Crypto' },
                 ].map((method) => (
@@ -333,7 +340,7 @@ export default function WalletPage() {
               <Label className="mb-3 block text-sm font-medium">Withdrawal Method</Label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { id: 'stripe', label: 'Bank' },
+                  { id: 'korapay', label: 'Korapay' },
                   { id: 'paypal', label: 'PayPal' },
                   { id: 'crypto', label: 'Crypto' },
                 ].map((method) => (
