@@ -136,6 +136,9 @@ import {
   Languages,
   GraduationCap,
   AtSign,
+  Megaphone,
+  Circle,
+  Coins,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -169,6 +172,7 @@ export const Icons = {
   refresh: Repeat,
   zoomIn: ZoomIn,
   zoomOut: ZoomOut,
+  megaphone: Megaphone,
 
   // User & Auth
   user: User,
@@ -194,6 +198,8 @@ export const Icons = {
   shoppingCart: ShoppingCart,
   shoppingBag: ShoppingBag,
   briefcase: Briefcase,
+  paypal: CreditCard, // Substitute
+  bitcoin: Coins, // Substitute
 
   // UI
   alert: AlertCircle,
@@ -213,6 +219,7 @@ export const Icons = {
   link: Link,
   externalLink: ExternalLink,
   radio: Radio,
+  circle: Circle,
 
   // Time & Date
   calendar: Calendar,

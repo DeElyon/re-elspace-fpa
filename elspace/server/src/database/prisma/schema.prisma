@@ -13,7 +13,7 @@ datasource db {
 
 model User {
   id                     String    @id @default(cuid())
-  uniqueUserId           String    @unique @default(uuid())  // Public-facing unique ID
+  uniqueUserId           String    @unique @default(uuid())
   email                  String    @unique
   emailVerified          DateTime?
   password               String?
@@ -23,6 +23,9 @@ model User {
   // Profile
   firstName              String?
   lastName               String?
+  legalFirstName         String?   // Name on ID document
+  legalLastName          String?   // Name on ID document
+  dateOfBirth            DateTime? // 18+ verification
   username               String?   @unique
   avatar                 String?
   coverImage             String?
@@ -30,16 +33,26 @@ model User {
   headline               String?
   location               String?
   country                String?
+  countryCode            String?
   timezone               String?
-  languages              String[]  @default([])
+  languages              String[]
   phone                  String?
   phoneVerified          Boolean   @default(false)
   
-  // Social
-  website                String?
-  github                 String?
-  linkedin               String?
-  twitter                String?
+  // KYC Fields
+  kycStatus              KYCStatus @default(NOT_SUBMITTED)
+  kycSubmittedAt         DateTime?
+  kycVerifiedAt          DateTime?
+  kycVerifiedBy          String?
+  kycRejectionReason     String?
+  idDocumentType         IDDocumentType?
+  idDocumentNumber       String?   // Encrypted
+  idDocumentFront        String?   // URL to document image
+  idDocumentBack         String?   // URL to document image
+  idDocumentSelfie       String?   // Selfie with ID
+  videoVerificationUrl   String?   // Video URL for liveness check
+  residentPermitNumber   String?   // For non-citizens
+  taxIdNumber            String?   // For tax purposes
   
   // Two-factor
   twoFactorEnabled       Boolean   @default(false)
@@ -74,6 +87,8 @@ model User {
   reviews                Review[]
   bookings               Booking[]
   supportTickets         SupportTicket[]
+  withdrawals            Withdrawal[]
+  kycVerifications       KYCVerification[]
   clientBookings         Booking[]      @relation("ClientBookings")
   freelancerBookings     Booking[]      @relation("FreelancerBookings")
   initiatedDisputes      Dispute[]      @relation("InitiatedDisputes")
@@ -90,12 +105,35 @@ model User {
   communitiesOwned       Community[]
   shares                 Share[]
   discussionMessages     DisputeMessage[]
+  escrowsInitiated       Escrow[]       @relation("EscrowClient")
+  escrowsReceived        Escrow[]       @relation("EscrowFreelancer")
+  kycReviewed            KYCVerification[] @relation("KYCReviews")
+  processedWithdrawals   Withdrawal[]    @relation("ProcessedWithdrawals")
   
   @@index([email])
   @@index([uniqueUserId])
   @@index([username])
   @@index([role])
   @@index([status])
+  @@index([kycStatus])
+  @@index([dateOfBirth])
+}
+
+enum KYCStatus {
+  NOT_SUBMITTED
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum IDDocumentType {
+  DRIVERS_LICENSE
+  NATIONAL_ID
+  VOTERS_CARD
+  RESIDENT_PERMIT
+  PASSPORT
 }
 
 enum Role {
@@ -378,6 +416,7 @@ model Project {
   milestones      Milestone[]
   contract        Contract?
   invitations     Invitation[]
+  escrows         Escrow[]
   
   @@index([clientId])
   @@index([status])
@@ -430,6 +469,7 @@ model Milestone {
   
   project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deliverables    Deliverable[]
+  escrow          Escrow?
   
   @@index([projectId])
   @@index([status])
@@ -1422,4 +1462,219 @@ enum Language {
   RU
   ZH
   JA
+}
+
+// ============================================
+// NEW MODELS
+// ============================================
+
+model Escrow {
+  id              String    @id @default(cuid())
+  escrowId        String    @unique
+  projectId       String
+  amount          Float
+  clientId        String
+  freelancerId    String
+  milestoneId     String    @unique
+  status          EscrowStatus @default(FUNDED)
+  fundedAt        DateTime  @default(now())
+  releasedAt      DateTime?
+  releasedBy      String?
+  disputedAt      DateTime?
+  disputeReason   String?
+  expiresAt       DateTime?
+  
+  project         Project   @relation(fields: [projectId], references: [id])
+  milestone       Milestone @relation(fields: [milestoneId], references: [id])
+  client          User      @relation("EscrowClient", fields: [clientId], references: [id])
+  freelancer      User      @relation("EscrowFreelancer", fields: [freelancerId], references: [id])
+}
+
+enum EscrowStatus {
+  FUNDED
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+// ============================================
+// KYC VERIFICATION MODEL (AUDIT TRAIL)
+// ============================================
+
+model KYCVerification {
+  id                String         @id @default(cuid())
+  userId            String
+  status            KYCStatus      @default(PENDING)
+  submittedAt       DateTime       @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  rejectionReason   String?
+  
+  // Document Info
+  documentType      IDDocumentType
+  documentNumber    String         // Encrypted
+  documentFront     String
+  documentBack      String?
+  documentSelfie    String?
+  videoUrl          String?
+  fullName          String
+  dateOfBirth       DateTime
+  country           String
+  residentPermitNumber String?
+  
+  // Verification Results
+  ageVerified       Boolean        @default(false)
+  documentVerified  Boolean        @default(false)
+  livenessVerified  Boolean        @default(false)
+  riskScore         Int            @default(0)
+  
+  // Timestamps
+  expiresAt         DateTime?
+  
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer          User?          @relation("KYCReviews", fields: [reviewedBy], references: [id])
+  
+  @@index([userId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+// ============================================
+// WITHDRAWAL MODEL (UPDATED)
+// ============================================
+
+model Withdrawal {
+  id                String           @id @default(cuid())
+  withdrawalId      String           @unique @default(uuid())
+  userId            String
+  walletId          String
+  
+  // Amount
+  amount            Float
+  fee               Float            @default(0)
+  feePercentage     Float            @default(2.5)
+  netAmount         Float
+  currency          String           @default("USD")
+  
+  // Destination
+  method            WithdrawalMethod
+  destination       String           // Encrypted bank/paypal/crypto details
+  destinationDetails Json?           // Additional details (bank name, swift, etc.)
+  
+  // Status
+  status            WithdrawalStatus @default(PENDING)
+  rejectionReason   String?
+  
+  // Processing
+  processedAt       DateTime?
+  processedBy       String?
+  processorNotes    String?
+  transactionId     String?          // External transaction reference
+  
+  // Risk
+  riskScore         Int              @default(0)
+  riskFlags         String[]
+  
+  // Timestamps
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  completedAt       DateTime?
+  
+  user              User             @relation(fields: [userId], references: [id])
+  wallet            Wallet           @relation(fields: [walletId], references: [id])
+  processor         User?            @relation("ProcessedWithdrawals", fields: [processedBy], references: [id])
+  bankAccount       BankAccount?     @relation(fields: [bankAccountId], references: [id])
+  bankAccountId     String?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([withdrawalId])
+}
+
+enum WithdrawalMethod {
+  BANK_TRANSFER
+  PAYPAL
+  CRYPTO
+  WISE
+  PAYONEER
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// BANK ACCOUNT MODEL (UPDATED)
+// ============================================
+
+model BankAccount {
+  id                String        @id @default(cuid())
+  walletId          String
+  accountHolder     String        // Must match legal name from KYC
+  bankName          String
+  bankCode          String?       // Routing/Sort/SWIFT code
+  accountNumber     String        // Encrypted
+  accountType       AccountType   @default(CHECKING)
+  country           String
+  currency          String        @default("USD")
+  isDefault         Boolean       @default(false)
+  verified          Boolean       @default(false)
+  verificationMethod String?
+  createdAt         DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  wallet            Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  withdrawals       Withdrawal[]
+  
+  @@unique([walletId, accountNumber])
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  BUSINESS
+}
+
+// ============================================
+// CRYPTO WALLET MODEL
+// ============================================
+
+model CryptoWallet {
+  id                String        @id @default(cuid())
+  walletId          String
+  address           String        @unique
+  network           String        // ETH, BTC, USDT, etc.
+  label             String?
+  isDefault         Boolean       @default(false)
+  verified          Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  wallet            Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// PAYPAL ACCOUNT MODEL
+// ============================================
+
+model PayPalAccount {
+  id                String        @id @default(cuid())
+  walletId          String
+  email             String        // PayPal email
+  merchantId        String?
+  isDefault         Boolean       @default(false)
+  verified          Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  wallet            Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  @@unique([walletId, email])
 }
