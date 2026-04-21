@@ -27,7 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Icons } from '@/components/ui/icons'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '@/hooks/useToast'
 import { formatDate, formatCurrency } from '@/lib/utils'
 
 async function fetchDispute(id: string) {
