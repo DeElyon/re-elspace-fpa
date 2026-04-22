@@ -45,11 +45,11 @@
 }
 
 * {
-  @apply border-border;
+  @apply border-slate-200 dark:border-slate-800;
 }
 
 body {
-  @apply bg-background text-foreground;
+  @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50;
 }
 
 /* Custom styles for EL SPACE */
