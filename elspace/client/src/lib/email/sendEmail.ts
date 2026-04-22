@@ -86,7 +86,7 @@ export async function sendProjectMatchEmail(
   const html = render(ProjectMatchEmail({ clientName, projectTitle, matches }))
   return sendEmail({
     to: email,
-    subject: \`🎯 Matches Ready for "\${projectTitle}"\`,
+    subject: `Matches Ready for "${projectTitle}"`,
     html,
   })
 }
@@ -100,7 +100,7 @@ export async function sendPaymentReceivedEmail(
   const html = render(PaymentReceivedEmail({ freelancerName, amount, projectTitle }))
   return sendEmail({
     to: email,
-    subject: \`💰 Payment Received - $\${amount}\`,
+    subject: `Payment Received - $${amount}`,
     html,
   })
 }
